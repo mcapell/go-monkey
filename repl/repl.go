@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"github.com/mcapell/go-monkey/lexer"
-	"github.com/mcapell/go-monkey/token"
+	"github.com/mcapell/go-monkey/parser"
 )
 
 const PROMPT = ">> "
@@ -24,10 +24,22 @@ func Start(in io.Reader, out io.Writer) {
 
 		line := scanner.Text()
 		l := lexer.New(line)
+		p := parser.New(l)
 
-		for tok := l.NextToken(); tok.Type != token.EOF; tok = l.NextToken() {
-			fmt.Fprintf(out, "%+v\n", tok)
+		program := p.ParseProgram()
+		if len(p.Errors()) != 0 {
+			printParserErrors(out, p.Errors())
+			continue
 		}
 
+		io.WriteString(out, program.String()) // nolint: errcheck
+		io.WriteString(out, "\n")             // nolint: errcheck
+	}
+}
+
+func printParserErrors(out io.Writer, errors []string) {
+	io.WriteString(out, "parser errors:\n") // nolint: errcheck
+	for _, msg := range errors {
+		io.WriteString(out, "\t"+msg+"\n") // nolint: errcheck
 	}
 }
